@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 
 #[derive(Component)]
-pub struct BasicCamera;
+pub struct MainCamera;
 
 pub fn setup_camera(mut commands: Commands) {
-    commands.spawn(Camera2d);
+    commands.spawn((Camera2d, MainCamera));
 }

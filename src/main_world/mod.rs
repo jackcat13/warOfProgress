@@ -1,6 +1,8 @@
-use bevy::prelude::*;
+use bevy::{input::InputSystem, prelude::*};
 use std::fmt::Debug;
 use uuid::Uuid;
+
+use crate::camera::MainCamera;
 
 #[derive(Component, PartialEq)]
 pub struct Villager;
@@ -39,8 +41,7 @@ pub fn setup_villagers(
                     UnitId(uuid),
                     Mesh2d(meshes.add(Annulus::new(0., 0.))),
                     MeshMaterial2d(materials.add(Color::srgb(0., 0.5, 0.))),
-                    Transform::from_xyz(-5., -30., 0.)
-                        .with_rotation(Quat::from_rotation_x(90.)),
+                    Transform::from_xyz(-5., -30., 0.).with_rotation(Quat::from_rotation_x(90.)),
                 ));
             })
             .observe(recollor::<Pointer<Over>>(Color::srgb(0.0, 1.0, 1.0)))
@@ -60,6 +61,27 @@ pub fn highlight_selected_units(
         } else {
             Mesh2d(meshes.add(Annulus::new(0., 0.)))
         }
+    }
+}
+
+pub fn check_movement_on_right_click(
+    query: Query<(&UnitId, &Transform), With<Pickable>>,
+    selected: Res<Selected>,
+    window: Single<&Window>,
+    camera_single: Single<(&Camera, &GlobalTransform), With<MainCamera>>,
+    buttons: Res<ButtonInput<MouseButton>>,
+) {
+    if !buttons.just_released(MouseButton::Right) { return; }
+    let (camera, camera_transform) = (camera_single.0, camera_single.1);
+    for (unit_id, transorm) in query {
+        if !selected.contains(unit_id) { continue; }
+        let Some(Ok(world_position)) = window
+            .cursor_position()
+            .map(|cursor| camera.viewport_to_world_2d(camera_transform, cursor))
+        else {
+            continue;
+        };
+        println!("{:?}", world_position);
     }
 }
 
