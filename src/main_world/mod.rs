@@ -1,8 +1,10 @@
-use bevy::{input::InputSystem, prelude::*};
+use bevy::{platform::collections::HashMap, prelude::*};
 use std::fmt::Debug;
 use uuid::Uuid;
 
 use crate::camera::MainCamera;
+
+const SPEED: f32 = 100.0;
 
 #[derive(Component, PartialEq)]
 pub struct Villager;
@@ -12,8 +14,13 @@ pub struct Selected {
     entities: Vec<UnitId>,
 }
 
-#[derive(Component, PartialEq, Clone, Deref, DerefMut)]
+#[derive(Component, Eq, Hash, PartialEq, Clone, Deref, DerefMut)]
 pub struct UnitId(String);
+
+#[derive(Default, Resource, Deref, DerefMut)]
+pub struct NewPositions{
+    positions: HashMap<UnitId, Vec2>
+}
 
 pub fn setup_villagers(
     mut commands: Commands,
@@ -65,15 +72,16 @@ pub fn highlight_selected_units(
 }
 
 pub fn check_movement_on_right_click(
-    query: Query<(&UnitId, &Transform), With<Pickable>>,
+    query: Query<&UnitId, With<Pickable>>,
     selected: Res<Selected>,
     window: Single<&Window>,
     camera_single: Single<(&Camera, &GlobalTransform), With<MainCamera>>,
     buttons: Res<ButtonInput<MouseButton>>,
+    mut new_positions: ResMut<NewPositions>,
 ) {
     if !buttons.just_released(MouseButton::Right) { return; }
     let (camera, camera_transform) = (camera_single.0, camera_single.1);
-    for (unit_id, transorm) in query {
+    for unit_id in query {
         if !selected.contains(unit_id) { continue; }
         let Some(Ok(world_position)) = window
             .cursor_position()
@@ -81,8 +89,46 @@ pub fn check_movement_on_right_click(
         else {
             continue;
         };
-        println!("{:?}", world_position);
+        new_positions.positions.insert(unit_id.clone(), world_position);
     }
+}
+
+pub fn move_units(
+    query: Query<(&UnitId, &mut Transform), With<Pickable>>,
+    mut new_positions: ResMut<NewPositions>,
+    time: Res<Time>,
+) {
+    let delta = time.delta_secs();
+    for (unit_id, mut transform) in query {
+        let Some(target_position) = new_positions.get(unit_id) else { continue; };
+        let mut current_position = transform.translation.xy();
+        if current_position.x < target_position.x {
+            current_position.x += SPEED * delta;
+            if current_position.x > target_position.x {
+                current_position.x = target_position.x;
+            }
+        }
+        if current_position.x > target_position.x {
+            current_position.x -= SPEED * delta;
+            if current_position.x < target_position.x {
+                current_position.x = target_position.x;
+            }
+        }
+        if current_position.y < target_position.y {
+            current_position.y += SPEED * delta;
+            if current_position.y > target_position.y {
+                current_position.y = target_position.y;
+            }
+        }
+        if current_position.y > target_position.y {
+            current_position.y -= SPEED * delta;
+            if current_position.y < target_position.y {
+                current_position.y = target_position.y;
+            }
+        }
+        transform.translation.x = current_position.x;
+        transform.translation.y = current_position.y;
+   }
 }
 
 fn recollor<E: Debug + Clone + Reflect>(color: Color) -> impl Fn(Trigger<E>, Query<&mut Sprite>) {
