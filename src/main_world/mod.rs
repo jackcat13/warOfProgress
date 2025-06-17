@@ -14,6 +14,9 @@ pub struct Selected {
     entities: Vec<UnitId>,
 }
 
+#[derive(Component)]
+pub struct SelectChild;
+
 #[derive(Component, Eq, Hash, PartialEq, Clone, Deref, DerefMut)]
 pub struct UnitId(String);
 
@@ -45,10 +48,12 @@ pub fn setup_villagers(
             ))
             .with_children(|parent| {
                 parent.spawn((
+                    SelectChild,
                     UnitId(uuid),
-                    Mesh2d(meshes.add(Annulus::new(0., 0.))),
+                    Mesh2d(meshes.add(Annulus::new(17., 20.))),
                     MeshMaterial2d(materials.add(Color::srgb(0., 0.5, 0.))),
                     Transform::from_xyz(-5., -30., 0.).with_rotation(Quat::from_rotation_x(90.)),
+                    Visibility::Hidden
                 ));
             })
             .observe(recollor::<Pointer<Over>>(Color::srgb(0.0, 1.0, 1.0)))
@@ -58,15 +63,14 @@ pub fn setup_villagers(
 }
 
 pub fn highlight_selected_units(
-    query: Query<(&UnitId, &mut Mesh2d), With<UnitId>>,
+    query: Query<(&UnitId, &mut Visibility), With<SelectChild>>,
     selected: Res<Selected>,
-    mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    for (id, mut mesh) in query {
-        *mesh = if selected.contains(id) {
-            Mesh2d(meshes.add(Annulus::new(17., 20.)))
+    for (id, mut visibility) in query {
+        *visibility = if selected.contains(id) {
+            Visibility::Visible
         } else {
-            Mesh2d(meshes.add(Annulus::new(0., 0.)))
+            Visibility::Hidden
         }
     }
 }
