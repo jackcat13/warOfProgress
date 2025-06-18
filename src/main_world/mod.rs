@@ -1,10 +1,8 @@
 use bevy::{
     color::palettes::tailwind::{SKY_700, SLATE_50},
     ecs::{relationship::RelatedSpawner, spawn::SpawnWith},
-    pbr::material_uses_bindless_resources,
     platform::collections::HashMap,
     prelude::*,
-    ui::experimental::UiChildren,
 };
 use std::fmt::Debug;
 use uuid::Uuid;
@@ -32,6 +30,14 @@ pub struct NewPositions {
     positions: HashMap<UnitId, Vec2>,
 }
 
+#[derive(Default, Resource, Deref, DerefMut)]
+pub struct CurrentMouseAsset {
+    asset: Option<Handle<Image>>,
+}
+
+#[derive(Component)]
+pub struct MouseComponent;
+
 #[derive(Debug)]
 enum MenuAction {
     House,
@@ -42,7 +48,6 @@ pub fn setup_villagers(
     asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    window: Single<&Window>,
 ) {
     let villager_asset = asset_server.load("caveman_age/units/units_caveman.png");
     for index in 0..2 {
@@ -50,7 +55,7 @@ pub fn setup_villagers(
         commands
             .spawn((
                 Sprite {
-                    custom_size: Some(Vec2 { x: 50., y: 70. }),
+                    custom_size: Some(Vec2 { x: 35., y: 45. }),
                     image: villager_asset.clone(),
                     ..default()
                 },
@@ -65,7 +70,7 @@ pub fn setup_villagers(
                     UnitId(uuid.clone()),
                     Mesh2d(meshes.add(Annulus::new(17., 20.))),
                     MeshMaterial2d(materials.add(Color::srgb(0., 0.5, 0.))),
-                    Transform::from_xyz(-5., -30., 0.).with_rotation(Quat::from_rotation_x(90.)),
+                    Transform::from_xyz(-5., -17., 0.).with_rotation(Quat::from_rotation_x(90.)),
                     Visibility::Hidden,
                 ));
             })
@@ -90,13 +95,55 @@ pub fn setup_villagers(
                     .observe(menu_action::<Pointer<Pressed>>(MenuAction::House));
             }),)),
         ));
+        commands.spawn((
+            Sprite {
+                image: default(),
+                ..default()
+            },
+            Transform::default(),
+            MouseComponent,
+        ));
     }
 }
 
-fn menu_action<E: Debug + Clone + Reflect>(menu_action: MenuAction) -> impl Fn(Trigger<E>) {
-    move |ev| {
-        println!("Action {:?}", menu_action);
+fn menu_action<E: Debug + Clone + Reflect>(
+    menu_action: MenuAction,
+) -> impl Fn(Trigger<E>, Res<AssetServer>, ResMut<CurrentMouseAsset>) {
+    move |_ev, asset_server, mut current_mouse_asset| {
+        current_mouse_asset.asset = match menu_action {
+            MenuAction::House => Some(asset_server.load("caveman_age/buildings/house_caveman.png")),
+        };
     }
+}
+
+pub fn draw_mouse_asset(
+    current_mouse_asset: Res<CurrentMouseAsset>,
+    mut sprite: Query<&mut Sprite, With<MouseComponent>>,
+    mut transform: Query<&mut Transform, With<MouseComponent>>,
+    window: Single<&Window>,
+    camera: Single<&Camera, With<MainCamera>>,
+    camera_transform: Single<&GlobalTransform, With<MainCamera>>,
+) {
+    // The 2 following lines are needed because for some reason, Single does not work for these two
+    // -> Query usage instead
+    let Some(mut sprite) = sprite.iter_mut().next() else {
+        return;
+    };
+    let Some(mut transform) = transform.iter_mut().next() else {
+        return;
+    };
+    let Some(mouse_position) = window.cursor_position().and_then(|cursor| camera.viewport_to_world_2d(&camera_transform, cursor).ok()) else {
+        return;
+    };
+    let Some(asset) = &current_mouse_asset.asset else {
+        sprite.image = default();
+        sprite.custom_size = None;
+        return;
+    };
+    sprite.image = asset.clone();
+    sprite.custom_size = Some(Vec2 { x: 60., y: 60. });
+    transform.translation.x = mouse_position.x;
+    transform.translation.y = mouse_position.y;
 }
 
 fn button<T: Into<String>>(text: T) -> impl Bundle {
