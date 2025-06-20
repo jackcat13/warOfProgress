@@ -14,6 +14,9 @@ const SPEED: f32 = 100.0;
 #[derive(Component, PartialEq)]
 pub struct Villager;
 
+#[derive(Component, PartialEq)]
+pub struct House;
+
 #[derive(Default, Resource, Deref, DerefMut)]
 pub struct Selected {
     entities: Vec<UnitId>,
@@ -43,7 +46,26 @@ enum MenuAction {
     House,
 }
 
-pub fn setup_villagers(
+#[derive(Resource)]
+pub struct PlayerResources {
+    wood: i8,
+    stone: i8,
+    gold: i8,
+}
+
+impl Default for PlayerResources {
+    fn default() -> Self {
+        PlayerResources { wood: 100, stone: 50, gold: 50 }
+    }
+}
+
+struct BuildingCost {
+    wood_cost: i8,
+    stone_cost: i8,
+    gold_cost: i8,
+}
+
+pub fn setup_world(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -93,7 +115,7 @@ pub fn setup_villagers(
                     .spawn(button("House", house_asset))
                     .observe(recollor::<Pointer<Over>>(Color::srgb(0.0, 1.0, 1.0)))
                     .observe(recollor::<Pointer<Out>>(Color::srgb(1.0, 1.0, 1.0)))
-                    .observe(menu_action::<Pointer<Pressed>>(MenuAction::House));
+                    .observe(menu_action::<Pointer<Released>>(MenuAction::House));
             }),)),
         ));
         commands.spawn((
@@ -133,10 +155,7 @@ pub fn draw_mouse_asset(
     let Some(mut transform) = transform.iter_mut().next() else {
         return;
     };
-    let Some(mouse_position) = window
-        .cursor_position()
-        .and_then(|cursor| camera.viewport_to_world_2d(&camera_transform, cursor).ok())
-    else {
+    let Some(mouse_position) = get_mouse_position(window, camera, camera_transform) else {
         return;
     };
     let Some(asset) = &current_mouse_asset.asset else {
@@ -148,6 +167,82 @@ pub fn draw_mouse_asset(
     sprite.custom_size = Some(Vec2 { x: 60., y: 60. });
     transform.translation.x = mouse_position.x;
     transform.translation.y = mouse_position.y;
+}
+
+pub fn build_check(
+    buttons: Res<ButtonInput<MouseButton>>,
+    mut current_mouse_asset: ResMut<CurrentMouseAsset>,
+    window: Single<&Window>,
+    camera: Single<&Camera, With<MainCamera>>,
+    camera_transform: Single<&GlobalTransform, With<MainCamera>>,
+    mut player_resources: ResMut<PlayerResources>,
+    mut sprite: Query<&mut Sprite, With<MouseComponent>>,
+    mut commands: Commands,
+) {
+    let Some(mut sprite) = sprite.iter_mut().next() else {
+        return;
+    };
+    sprite.color = Color::srgb(1., 0., 0.);
+    let Some(asset) = &mut current_mouse_asset.asset else {
+        return;
+    };
+    let building_cost = resolve_building_from_asset(asset);
+    let Some(mouse_position) = get_mouse_position(window, camera, camera_transform) else {
+        return;
+    };
+    if !can_pay(&building_cost, &player_resources) {
+        return;
+    }
+    sprite.color = Color::srgb(0., 1., 0.);
+    if !buttons.just_pressed(MouseButton::Left) { return; };
+    player_resources.wood -= building_cost.wood_cost;
+    player_resources.stone -= building_cost.stone_cost;
+    player_resources.gold -= building_cost.gold_cost;
+    commands.spawn((
+        Sprite {
+            custom_size: Some(Vec2 { x: 60., y: 60. }),
+            image: sprite.image.clone(),
+            ..default()
+        },
+        Transform::from_xyz(mouse_position.x, mouse_position.y, 0.),
+        House,
+        UnitId(Uuid::new_v4().to_string()),
+    ));
+    sprite.image = default();
+    current_mouse_asset.asset = None;
+}
+
+fn get_mouse_position(
+    window: Single<&Window>,
+    camera: Single<&Camera, With<MainCamera>>,
+    camera_transform: Single<&GlobalTransform, With<MainCamera>>,
+) -> Option<Vec2> {
+    window
+        .cursor_position()
+        .and_then(|cursor| camera.viewport_to_world_2d(&camera_transform, cursor).ok())
+}
+
+fn can_pay(building_cost: &BuildingCost, player_resources: &PlayerResources) -> bool {
+    if player_resources.wood < building_cost.wood_cost { return false; };
+    if player_resources.stone < building_cost.stone_cost { return false; };
+    if player_resources.gold < building_cost.gold_cost { return false; };
+    true
+}
+
+fn resolve_building_from_asset(asset: &mut Handle<Image>) -> BuildingCost {
+    let path = asset
+        .path()
+        .expect("BUG - Asset must have a path")
+        .to_string();
+    if path.contains("house") {
+        BuildingCost {
+            wood_cost: 50,
+            stone_cost: 0,
+            gold_cost: 0,
+        }
+    } else {
+        panic!("BUG - The asset must have a Building associated : {}", path);
+    }
 }
 
 fn button<T: Into<String>>(text: T, button_asset: Handle<Image>) -> impl Bundle {
@@ -168,7 +263,7 @@ fn button<T: Into<String>>(text: T, button_asset: Handle<Image>) -> impl Bundle 
                     image: button_asset,
                     ..default()
                 },
-            Transform::from_scale(Vec3 {
+                Transform::from_scale(Vec3 {
                     x: 0.6,
                     y: 0.6,
                     z: 0.
