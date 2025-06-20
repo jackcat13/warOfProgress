@@ -77,6 +77,7 @@ pub fn setup_villagers(
             .observe(recollor::<Pointer<Over>>(Color::srgb(0.0, 1.0, 1.0)))
             .observe(recollor::<Pointer<Out>>(Color::srgb(1.0, 1.0, 1.0)))
             .observe(focus::<Pointer<Pressed>>());
+        let house_asset = asset_server.load("caveman_age/buildings/house_caveman.png");
         commands.spawn((
             SelectChild,
             UnitId(uuid),
@@ -89,7 +90,7 @@ pub fn setup_villagers(
             },
             Children::spawn((SpawnWith(|parent: &mut RelatedSpawner<ChildOf>| {
                 parent
-                    .spawn(button("House"))
+                    .spawn(button("House", house_asset))
                     .observe(recollor::<Pointer<Over>>(Color::srgb(0.0, 1.0, 1.0)))
                     .observe(recollor::<Pointer<Out>>(Color::srgb(1.0, 1.0, 1.0)))
                     .observe(menu_action::<Pointer<Pressed>>(MenuAction::House));
@@ -132,7 +133,10 @@ pub fn draw_mouse_asset(
     let Some(mut transform) = transform.iter_mut().next() else {
         return;
     };
-    let Some(mouse_position) = window.cursor_position().and_then(|cursor| camera.viewport_to_world_2d(&camera_transform, cursor).ok()) else {
+    let Some(mouse_position) = window
+        .cursor_position()
+        .and_then(|cursor| camera.viewport_to_world_2d(&camera_transform, cursor).ok())
+    else {
         return;
     };
     let Some(asset) = &current_mouse_asset.asset else {
@@ -146,7 +150,7 @@ pub fn draw_mouse_asset(
     transform.translation.y = mouse_position.y;
 }
 
-fn button<T: Into<String>>(text: T) -> impl Bundle {
+fn button<T: Into<String>>(text: T, button_asset: Handle<Image>) -> impl Bundle {
     (
         Button,
         BackgroundColor(SKY_700.into()),
@@ -154,9 +158,23 @@ fn button<T: Into<String>>(text: T) -> impl Bundle {
             padding: UiRect::all(Val::Px(5.)),
             margin: UiRect::all(Val::Px(5.)),
             width: Val::Px(200.),
+            height: Val::Px(100.),
             ..default()
         },
-        children![(Text::new(text), TextColor(SLATE_50.into()))],
+        children![
+            (Text::new(text), TextColor(SLATE_50.into())),
+            (
+                ImageNode {
+                    image: button_asset,
+                    ..default()
+                },
+            Transform::from_scale(Vec3 {
+                    x: 0.6,
+                    y: 0.6,
+                    z: 0.
+                })
+            )
+        ],
     )
 }
 
