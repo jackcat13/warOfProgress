@@ -1,57 +1,18 @@
 use bevy::{
     color::palettes::tailwind::{SKY_700, SLATE_50},
     ecs::{relationship::RelatedSpawner, spawn::SpawnWith},
-    platform::collections::HashMap,
     prelude::*,
 };
+use world_components::*;
 use std::fmt::Debug;
 use uuid::Uuid;
 
 use crate::camera::MainCamera;
 
+pub mod hud;
+pub mod world_components;
+
 const SPEED: f32 = 100.0;
-
-#[derive(Component, PartialEq)]
-pub struct Villager;
-
-#[derive(Component, PartialEq)]
-pub struct House;
-
-#[derive(Default, Resource, Deref, DerefMut)]
-pub struct Selected {
-    entities: Vec<UnitId>,
-}
-
-#[derive(Component)]
-pub struct SelectChild;
-
-#[derive(Component, Eq, Hash, PartialEq, Clone, Deref, DerefMut)]
-pub struct UnitId(String);
-
-#[derive(Default, Resource, Deref, DerefMut)]
-pub struct NewPositions {
-    positions: HashMap<UnitId, Vec2>,
-}
-
-#[derive(Default, Resource, Deref, DerefMut)]
-pub struct CurrentMouseAsset {
-    asset: Option<Handle<Image>>,
-}
-
-#[derive(Component)]
-pub struct MouseComponent;
-
-#[derive(Debug)]
-enum MenuAction {
-    House,
-}
-
-#[derive(Resource)]
-pub struct PlayerResources {
-    wood: i8,
-    stone: i8,
-    gold: i8,
-}
 
 impl Default for PlayerResources {
     fn default() -> Self {
@@ -316,7 +277,7 @@ pub fn check_movement_on_right_click(
 
 pub fn move_units(
     query: Query<(&UnitId, &mut Transform), With<Pickable>>,
-    mut new_positions: ResMut<NewPositions>,
+    new_positions: ResMut<NewPositions>,
     time: Res<Time>,
 ) {
     let delta = time.delta_secs();

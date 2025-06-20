@@ -1,7 +1,9 @@
 use bevy::prelude::*;
 use camera::setup_camera;
 use main_world::{
-    build_check, check_movement_on_right_click, draw_mouse_asset, highlight_selected_units, move_units, setup_world, CurrentMouseAsset, NewPositions, PlayerResources, Selected
+    build_check, check_movement_on_right_click, draw_mouse_asset, highlight_selected_units,
+    move_units, setup_world,
+    world_components::{CurrentMouseAsset, NewPositions, PlayerResources, Selected},
 };
 
 mod camera;
