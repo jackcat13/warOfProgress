@@ -3,9 +3,9 @@ use bevy::{
     ecs::{relationship::RelatedSpawner, spawn::SpawnWith},
     prelude::*,
 };
-use world_components::*;
 use std::fmt::Debug;
 use uuid::Uuid;
+use world_components::*;
 
 use crate::camera::MainCamera;
 
@@ -16,7 +16,11 @@ const SPEED: f32 = 100.0;
 
 impl Default for PlayerResources {
     fn default() -> Self {
-        PlayerResources { wood: 100, stone: 50, gold: 50 }
+        PlayerResources {
+            wood: 100,
+            stone: 50,
+            gold: 50,
+        }
     }
 }
 
@@ -50,7 +54,7 @@ pub fn setup_world(
             .with_children(|parent| {
                 parent.spawn((
                     SelectChild,
-                    UnitId(uuid.clone()),
+                    UnitId(uuid),
                     Mesh2d(meshes.add(Annulus::new(17., 20.))),
                     MeshMaterial2d(materials.add(Color::srgb(0., 0.5, 0.))),
                     Transform::from_xyz(-5., -17., 0.).with_rotation(Quat::from_rotation_x(90.)),
@@ -60,34 +64,31 @@ pub fn setup_world(
             .observe(recollor::<Pointer<Over>>(Color::srgb(0.0, 1.0, 1.0)))
             .observe(recollor::<Pointer<Out>>(Color::srgb(1.0, 1.0, 1.0)))
             .observe(focus::<Pointer<Pressed>>());
-        let house_asset = asset_server.load("caveman_age/buildings/house_caveman.png");
-        commands.spawn((
-            SelectChild,
-            UnitId(uuid),
-            Visibility::Hidden,
-            Node {
-                position_type: PositionType::Absolute,
-                bottom: Val::Px(10.),
-                row_gap: Val::Px(10.),
-                ..default()
-            },
-            Children::spawn((SpawnWith(|parent: &mut RelatedSpawner<ChildOf>| {
-                parent
-                    .spawn(button("House", house_asset))
-                    .observe(recollor::<Pointer<Over>>(Color::srgb(0.0, 1.0, 1.0)))
-                    .observe(recollor::<Pointer<Out>>(Color::srgb(1.0, 1.0, 1.0)))
-                    .observe(menu_action::<Pointer<Released>>(MenuAction::House));
-            }),)),
-        ));
-        commands.spawn((
-            Sprite {
-                image: default(),
-                ..default()
-            },
-            Transform::default(),
-            MouseComponent,
-        ));
     }
+    let house_asset = asset_server.load("caveman_age/buildings/house_caveman.png");
+    commands.spawn((
+        Node {
+            position_type: PositionType::Absolute,
+            bottom: Val::Px(10.),
+            row_gap: Val::Px(10.),
+            ..default()
+        },
+        Children::spawn((SpawnWith(|parent: &mut RelatedSpawner<ChildOf>| {
+            parent
+                .spawn(button("House", house_asset))
+                .observe(recollor::<Pointer<Over>>(Color::srgb(0.0, 1.0, 1.0)))
+                .observe(recollor::<Pointer<Out>>(Color::srgb(1.0, 1.0, 1.0)))
+                .observe(menu_action::<Pointer<Released>>(MenuAction::House));
+        }),)),
+    ));
+    commands.spawn((
+        Sprite {
+            image: default(),
+            ..default()
+        },
+        Transform::default(),
+        MouseComponent,
+    ));
 }
 
 fn menu_action<E: Debug + Clone + Reflect>(
@@ -155,7 +156,9 @@ pub fn build_check(
         return;
     }
     sprite.color = Color::srgb(0., 1., 0.);
-    if !buttons.just_pressed(MouseButton::Left) { return; };
+    if !buttons.just_pressed(MouseButton::Left) {
+        return;
+    };
     player_resources.wood -= building_cost.wood_cost;
     player_resources.stone -= building_cost.stone_cost;
     player_resources.gold -= building_cost.gold_cost;
@@ -184,9 +187,15 @@ fn get_mouse_position(
 }
 
 fn can_pay(building_cost: &BuildingCost, player_resources: &PlayerResources) -> bool {
-    if player_resources.wood < building_cost.wood_cost { return false; };
-    if player_resources.stone < building_cost.stone_cost { return false; };
-    if player_resources.gold < building_cost.gold_cost { return false; };
+    if player_resources.wood < building_cost.wood_cost {
+        return false;
+    };
+    if player_resources.stone < building_cost.stone_cost {
+        return false;
+    };
+    if player_resources.gold < building_cost.gold_cost {
+        return false;
+    };
     true
 }
 
