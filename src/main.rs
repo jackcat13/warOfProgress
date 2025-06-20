@@ -1,13 +1,16 @@
 use bevy::prelude::*;
 use camera::setup_camera;
 use main_world::{
-    build_check, check_movement_on_right_click, draw_mouse_asset, highlight_selected_units,
-    move_units, setup_world,
+    builds::build_check,
+    hud::draw_mouse_asset,
+    main_world::setup_world,
+    units::{check_movement_on_right_click, highlight_selected_units, move_units},
     world_components::{CurrentMouseAsset, NewPositions, PlayerResources, Selected},
 };
 
 mod camera;
 mod main_world;
+mod mouse;
 
 fn main() {
     App::new()

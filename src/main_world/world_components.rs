@@ -42,4 +42,18 @@ pub struct PlayerResources {
     pub gold: i8,
 }
 
+impl Default for PlayerResources {
+    fn default() -> Self {
+        PlayerResources {
+            wood: 100,
+            stone: 50,
+            gold: 50,
+        }
+    }
+}
 
+pub struct BuildingCost {
+    pub wood_cost: i8,
+    pub stone_cost: i8,
+    pub gold_cost: i8,
+}
