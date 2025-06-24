@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use camera::setup_camera;
 use main_world::{
     builds::build_check,
-    hud::draw_mouse_asset,
+    hud::{draw_mouse_asset, update_resources},
     main_world::setup_world,
     units::{check_movement_on_right_click, highlight_selected_units, move_units},
     world_components::{CurrentMouseAsset, NewPositions, PlayerResources, Selected},
@@ -27,6 +27,7 @@ fn main() {
                 check_movement_on_right_click,
                 move_units,
                 draw_mouse_asset,
+                update_resources,
                 build_check,
             ),
         )

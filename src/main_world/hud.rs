@@ -8,10 +8,38 @@ use crate::{camera::MainCamera, mouse::get_mouse_position};
 
 use super::{
     observers::{menu_action, recollor},
-    world_components::{CurrentMouseAsset, MenuAction, MouseComponent},
+    world_components::{CurrentMouseAsset, MenuAction, MouseComponent, PlayerResources, ResourceText},
 };
 
-pub fn setup_hud(commands: &mut Commands, house_asset: Handle<Image>) {
+pub fn setup_hud(
+    commands: &mut Commands,
+    player_resources: Res<PlayerResources>,
+    house_asset: Handle<Image>,
+) {
+    let (wood, stone, gold) = (
+        player_resources.wood,
+        player_resources.stone,
+        player_resources.gold,
+    );
+    commands.spawn((
+        Node {
+            margin: UiRect::all(Val::Px(5.)),
+            position_type: PositionType::Absolute,
+            top: Val::Px(10.),
+            right: Val::Px(10.),
+            row_gap: Val::Px(10.),
+            ..default()
+        },
+        children![
+            Text::new("Wood : "),
+            (Text::new(wood.to_string()), ResourceText::Wood),
+            Text::new(" | Stone : "),
+            (Text::new(stone.to_string()), ResourceText::Stone),
+            Text::new(" | Gold : "),
+            (Text::new(gold.to_string()), ResourceText::Gold),
+            TextColor(SLATE_50.into()),
+        ],
+    ));
     commands.spawn((
         Node {
             position_type: PositionType::Absolute,
@@ -93,4 +121,17 @@ pub fn draw_mouse_asset(
     sprite.custom_size = Some(Vec2 { x: 60., y: 60. });
     transform.translation.x = mouse_position.x;
     transform.translation.y = mouse_position.y;
+}
+
+pub fn update_resources(
+    resources_texts: Query<(&mut Text, &ResourceText), With<ResourceText>>,
+    player_resources: Res<PlayerResources>,
+) {
+    for (mut text, resource_type) in resources_texts {
+        match resource_type {
+            ResourceText::Wood => *text = Text::new(player_resources.wood.to_string()),
+            ResourceText::Stone => *text = Text::new(player_resources.stone.to_string()),
+            ResourceText::Gold => *text = Text::new(player_resources.gold.to_string()),
+        }
+    }
 }

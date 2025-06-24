@@ -1,12 +1,13 @@
 use bevy::prelude::*;
 
-use super::{hud::setup_hud, villagers::setup_villagers};
+use super::{hud::setup_hud, villagers::setup_villagers, world_components::PlayerResources};
 
 pub fn setup_world(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    player_resources: Res<PlayerResources>,
 ) {
     let villager_asset = asset_server.load("caveman_age/units/units_caveman.png");
     setup_villagers(
@@ -16,5 +17,5 @@ pub fn setup_world(
         materials.add(Color::srgb(0., 0.5, 0.)),
     );
     let house_asset = asset_server.load("caveman_age/buildings/house_caveman.png");
-    setup_hud(&mut commands, house_asset);
+    setup_hud(&mut commands, player_resources, house_asset);
 }

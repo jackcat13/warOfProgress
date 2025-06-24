@@ -57,3 +57,8 @@ pub struct BuildingCost {
     pub stone_cost: i8,
     pub gold_cost: i8,
 }
+
+#[derive(Component)]
+pub enum ResourceText {
+    Wood, Stone, Gold
+}
