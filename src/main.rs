@@ -4,7 +4,7 @@ use main_world::{
     builds::build_check,
     hud::{draw_mouse_asset, update_resources},
     main_world::setup_world,
-    units::{check_movement_on_right_click, highlight_selected_units, move_units},
+    units::{check_build_target_on_right_click, check_movement_on_right_click, highlight_selected_units, move_units, process_building_builds},
     world_components::{CurrentMouseAsset, NewPositions, PlayerResources, Selected},
 };
 
@@ -25,7 +25,9 @@ fn main() {
             (
                 highlight_selected_units,
                 check_movement_on_right_click,
+                check_build_target_on_right_click,
                 move_units,
+                process_building_builds,
                 draw_mouse_asset,
                 update_resources,
                 build_check,

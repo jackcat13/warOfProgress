@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 
-use crate::camera::MainCamera;
+use crate::{camera::MainCamera, main_world::builds::resolve_building_from_asset, mouse::{get_mouse_position, is_mouse_in_hitbox}};
 
-use super::world_components::{NewPositions, SelectChild, Selected, UnitId};
+use super::world_components::{Achievement, BuildTarget, NewPositions, SelectChild, Selected, UnitId, Villager};
 
 const SPEED: f32 = 100.0;
 
@@ -44,6 +44,52 @@ pub fn check_movement_on_right_click(
         new_positions
             .positions
             .insert(unit_id.clone(), world_position);
+    }
+}
+
+pub fn check_build_target_on_right_click(
+    villagers: Query<(&UnitId, &mut BuildTarget), With<Villager>>,
+    builds: Query<(&UnitId, &Transform, &Sprite), With<Achievement>>,
+    selected: Res<Selected>,
+    buttons: Res<ButtonInput<MouseButton>>,
+    window: Single<&Window>,
+    camera: Single<&Camera, With<MainCamera>>,
+    camera_transform: Single<&GlobalTransform, With<MainCamera>>,
+) {
+    if !buttons.just_released(MouseButton::Right) {
+        return;
+    }
+    let Some(mouse_position) = get_mouse_position(window, camera, camera_transform) else {
+        return;
+    };
+    for (unit_id, mut build_target) in villagers {
+        if !selected.contains(unit_id) { continue; }
+        for (build_id, transform, sprite) in builds {
+            if !is_mouse_in_hitbox(mouse_position, transform.translation.xy(), sprite.custom_size.expect("BUG - Builds sprite must have a custom size")) {
+                build_target.id = None;
+                continue;
+            }
+            build_target.id = Some(build_id.clone());
+        }
+    }
+}
+
+pub fn process_building_builds(
+    villagers: Query<&mut BuildTarget, With<Villager>>,
+    mut builds: Query<(&UnitId, &mut Achievement, &mut Sprite), With<Achievement>>,
+    time: Res<Time>,
+    asset_server: Res<AssetServer>,
+) {
+    for mut build_target in villagers {
+        let Some(build_target_id) = &build_target.id else { continue; };
+        let Some((_, mut achievement, mut sprite)) = builds.iter_mut().find(|(build_id, _, _)| *build_id == build_target_id) else {continue;};
+        //TODO: building only when player reached building
+        achievement.progress += 10. * time.delta_secs();
+        if achievement.progress >= 100. {
+            build_target.id = None;
+            let building_specs = resolve_building_from_asset(&mut sprite.image);
+            sprite.image = asset_server.load(building_specs.resolve_finished_asset_path());
+        }
     }
 }
 

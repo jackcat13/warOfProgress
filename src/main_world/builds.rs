@@ -4,8 +4,9 @@ use uuid::Uuid;
 use crate::{camera::MainCamera, mouse::get_mouse_position};
 
 use super::world_components::{
-    Achievement, BuildingCost, BuildingSpecs, CurrentMouseAsset, House, MenuAction, MouseComponent, PlayerResources, UnitId
-};
+        Achievement, BuildingCost, BuildingSpecs, CurrentMouseAsset, House, MenuAction,
+        MouseComponent, PlayerResources, UnitId,
+    };
 
 pub fn build_check(
     buttons: Res<ButtonInput<MouseButton>>,
@@ -39,6 +40,7 @@ pub fn build_check(
     player_resources.wood -= building_specs.cost.wood;
     player_resources.stone -= building_specs.cost.stone;
     player_resources.gold -= building_specs.cost.gold;
+    let building_id = UnitId(Uuid::new_v4().to_string());
     commands.spawn((
         Sprite {
             custom_size: Some(Vec2 { x: 60., y: 60. }),
@@ -48,7 +50,7 @@ pub fn build_check(
         Transform::from_xyz(mouse_position.x, mouse_position.y, 0.),
         House,
         Achievement { progress: 0.0 },
-        UnitId(Uuid::new_v4().to_string()),
+        building_id.clone(),
     ));
     sprite.image = default();
     current_mouse_asset.asset = None;
@@ -68,7 +70,7 @@ fn can_pay(building_specs: &BuildingSpecs, player_resources: &PlayerResources) -
     true
 }
 
-fn resolve_building_from_asset(asset: &mut Handle<Image>) -> BuildingSpecs {
+pub fn resolve_building_from_asset(asset: &mut Handle<Image>) -> BuildingSpecs {
     let path = asset
         .path()
         .expect("BUG - Asset must have a path")
@@ -80,7 +82,7 @@ fn resolve_building_from_asset(asset: &mut Handle<Image>) -> BuildingSpecs {
                 wood: 50,
                 stone: 0,
                 gold: 0,
-            }
+            },
         }
     } else {
         panic!("BUG - The asset must have a Building associated : {}", path);

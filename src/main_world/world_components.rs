@@ -19,7 +19,7 @@ pub struct Selected {
 #[derive(Component)]
 pub struct SelectChild;
 
-#[derive(Component, Eq, Hash, PartialEq, Clone, Deref, DerefMut)]
+#[derive(Component, Eq, Hash, PartialEq, Clone, Deref, DerefMut, Debug)]
 pub struct UnitId(pub String);
 
 #[derive(Default, Resource, Deref, DerefMut)]
@@ -38,6 +38,11 @@ pub struct MouseComponent;
 #[derive(Debug)]
 pub enum MenuAction {
     House,
+}
+
+#[derive(Component)]
+pub struct BuildTarget {
+    pub id: Option<UnitId>,
 }
 
 #[derive(Resource)]
@@ -65,7 +70,13 @@ pub struct BuildingSpecs {
 impl BuildingSpecs {
     pub fn resolve_in_progress_asset_path(&self) -> String {
         match self.r#type {
-            MenuAction::House => "caveman_age/buildings/small_in_progress.png".to_string()
+            MenuAction::House => "caveman_age/buildings/house_in_progress_caveman.png".to_string()
+        }
+    }
+
+    pub fn resolve_finished_asset_path(&self) -> String {
+        match self.r#type {
+            MenuAction::House => "caveman_age/buildings/house_caveman.png".to_string()
         }
     }
 }
