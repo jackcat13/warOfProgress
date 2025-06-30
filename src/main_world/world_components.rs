@@ -6,6 +6,11 @@ pub struct Villager;
 #[derive(Component, PartialEq)]
 pub struct House;
 
+#[derive(Component)]
+pub struct Achievement {
+    pub progress: f32,
+}
+
 #[derive(Default, Resource, Deref, DerefMut)]
 pub struct Selected {
     pub entities: Vec<UnitId>,
@@ -52,10 +57,23 @@ impl Default for PlayerResources {
     }
 }
 
+pub struct BuildingSpecs {
+    pub r#type: MenuAction,
+    pub cost: BuildingCost,
+}
+
+impl BuildingSpecs {
+    pub fn resolve_in_progress_asset_path(&self) -> String {
+        match self.r#type {
+            MenuAction::House => "caveman_age/buildings/small_in_progress.png".to_string()
+        }
+    }
+}
+
 pub struct BuildingCost {
-    pub wood_cost: i8,
-    pub stone_cost: i8,
-    pub gold_cost: i8,
+    pub wood: i8,
+    pub stone: i8,
+    pub gold: i8,
 }
 
 #[derive(Component)]
