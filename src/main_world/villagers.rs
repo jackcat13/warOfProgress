@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use super::{
     observers::{focus, recollor},
-    world_components::{BuildTarget, SelectChild, UnitId, Villager},
+    world_components::{BuildTarget, Moving, SelectChild, UnitId, Villager},
 };
 
 pub fn setup_villagers<M: Material2d>(
@@ -26,6 +26,7 @@ pub fn setup_villagers<M: Material2d>(
                 UnitId(uuid.clone()),
                 Pickable::default(),
                 BuildTarget { id: None },
+                Moving(false),
             ))
             .with_children(|parent| {
                 parent.spawn((

@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::{camera::MainCamera, main_world::builds::resolve_building_from_asset, mouse::{get_mouse_position, is_mouse_in_hitbox}};
 
-use super::world_components::{Achievement, BuildTarget, NewPositions, SelectChild, Selected, UnitId, Villager};
+use super::world_components::{Achievement, BuildTarget, Moving, NewPositions, SelectChild, Selected, UnitId, Villager};
 
 const SPEED: f32 = 100.0;
 
@@ -20,7 +20,7 @@ pub fn highlight_selected_units(
 }
 
 pub fn check_movement_on_right_click(
-    query: Query<&UnitId, With<Pickable>>,
+    movables: Query<(&UnitId, &mut Moving), With<Pickable>>,
     selected: Res<Selected>,
     window: Single<&Window>,
     camera_single: Single<(&Camera, &GlobalTransform), With<MainCamera>>,
@@ -31,7 +31,7 @@ pub fn check_movement_on_right_click(
         return;
     }
     let (camera, camera_transform) = (camera_single.0, camera_single.1);
-    for unit_id in query {
+    for (unit_id, mut moving) in movables {
         if !selected.contains(unit_id) {
             continue;
         }
@@ -44,6 +44,7 @@ pub fn check_movement_on_right_click(
         new_positions
             .positions
             .insert(unit_id.clone(), world_position);
+        *moving = Moving(true);
     }
 }
 
@@ -75,16 +76,17 @@ pub fn check_build_target_on_right_click(
 }
 
 pub fn process_building_builds(
-    villagers: Query<&mut BuildTarget, With<Villager>>,
+    villagers: Query<(&mut BuildTarget, &Moving), With<Villager>>,
     mut builds: Query<(&UnitId, &mut Achievement, &mut Sprite), With<Achievement>>,
     time: Res<Time>,
     asset_server: Res<AssetServer>,
 ) {
-    for mut build_target in villagers {
+    for (mut build_target, moving) in villagers {
+        if moving.0 {continue;}
         let Some(build_target_id) = &build_target.id else { continue; };
         let Some((_, mut achievement, mut sprite)) = builds.iter_mut().find(|(build_id, _, _)| *build_id == build_target_id) else {continue;};
-        //TODO: building only when player reached building
         achievement.progress += 10. * time.delta_secs();
+        println!("Progress {:?}", achievement.progress);
         if achievement.progress >= 100. {
             build_target.id = None;
             let building_specs = resolve_building_from_asset(&mut sprite.image);
@@ -94,16 +96,20 @@ pub fn process_building_builds(
 }
 
 pub fn move_units(
-    query: Query<(&UnitId, &mut Transform), With<Pickable>>,
+    movables: Query<(&UnitId, &mut Moving, &mut Transform), With<Pickable>>,
     new_positions: ResMut<NewPositions>,
     time: Res<Time>,
 ) {
     let delta = time.delta_secs();
-    for (unit_id, mut transform) in query {
+    for (unit_id, mut moving, mut transform) in movables {
         let Some(target_position) = new_positions.get(unit_id) else {
             continue;
         };
         let mut current_position = transform.translation.xy();
+        if current_position.x == target_position.x && current_position.y == target_position.y {
+            *moving = Moving(false);
+            continue;
+        }
         if current_position.x < target_position.x {
             current_position.x += SPEED * delta;
             if current_position.x > target_position.x {

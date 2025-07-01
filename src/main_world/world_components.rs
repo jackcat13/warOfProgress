@@ -45,6 +45,9 @@ pub struct BuildTarget {
     pub id: Option<UnitId>,
 }
 
+#[derive(Component, Eq, Hash, PartialEq, Clone, Deref, DerefMut, Debug)]
+pub struct Moving(pub bool);
+
 #[derive(Resource)]
 pub struct PlayerResources {
     pub wood: i8,
