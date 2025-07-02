@@ -42,8 +42,7 @@ pub fn check_movement_on_right_click(
             continue;
         };
         new_positions
-            .positions
-            .insert(unit_id.clone(), world_position);
+            .insert_if_not_present(unit_id, world_position);
         *moving = Moving(true);
     }
 }
@@ -56,6 +55,7 @@ pub fn check_build_target_on_right_click(
     window: Single<&Window>,
     camera: Single<&Camera, With<MainCamera>>,
     camera_transform: Single<&GlobalTransform, With<MainCamera>>,
+    mut new_positions: ResMut<NewPositions>,
 ) {
     if !buttons.just_released(MouseButton::Right) {
         return;
@@ -65,12 +65,20 @@ pub fn check_build_target_on_right_click(
     };
     for (unit_id, mut build_target) in villagers {
         if !selected.contains(unit_id) { continue; }
-        for (build_id, transform, sprite) in builds {
-            if !is_mouse_in_hitbox(mouse_position, transform.translation.xy(), sprite.custom_size.expect("BUG - Builds sprite must have a custom size")) {
+        for (build_id, build_transform, build_sprite) in builds {
+            let build_xy = build_transform.translation.xy();
+            let build_size = build_sprite.custom_size.expect("BUG - Build sprite must have custom_size");
+            if !is_mouse_in_hitbox(mouse_position, build_xy, build_size) {
                 build_target.id = None;
                 continue;
             }
             build_target.id = Some(build_id.clone());
+            println!("{:?}", new_positions);
+            let processed_position = Vec2 {
+                x: build_xy.x - build_size.x / 2.,
+                y: build_xy.y - build_size.y / 2.,
+            };
+            new_positions.insert_or_update(unit_id, processed_position);
         }
     }
 }

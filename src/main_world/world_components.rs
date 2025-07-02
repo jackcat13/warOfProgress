@@ -22,9 +22,25 @@ pub struct SelectChild;
 #[derive(Component, Eq, Hash, PartialEq, Clone, Deref, DerefMut, Debug)]
 pub struct UnitId(pub String);
 
-#[derive(Default, Resource, Deref, DerefMut)]
+#[derive(Default, Resource, Deref, DerefMut, Debug)]
 pub struct NewPositions {
     pub positions: HashMap<UnitId, Vec2>,
+}
+
+impl NewPositions {
+    pub fn insert_if_not_present(&mut self, unit_id: &UnitId, position: Vec2) {
+        match self.iter_mut().find(|(id, _)| *id == unit_id) {
+            Some(_) => (),
+            None => { self.insert(unit_id.clone(), position); },
+        };
+    }
+
+    pub fn insert_or_update(&mut self, unit_id: &UnitId, position: Vec2) {
+        match self.iter_mut().find(|(id, _)| *id == unit_id) {
+            Some((_, new_position)) => *new_position = position,
+            None => { self.insert(unit_id.clone(), position); },
+        };
+    }
 }
 
 #[derive(Default, Resource, Deref, DerefMut)]
