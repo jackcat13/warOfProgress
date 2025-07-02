@@ -17,11 +17,12 @@ pub fn recollor<E: Debug + Clone + Reflect>(
     }
 }
 
-pub fn focus<E>() -> impl Fn(Trigger<E>, Query<(&mut Sprite, &UnitId)>, ResMut<Selected>)
+pub fn focus<E>() -> impl Fn(Trigger<E>, Query<(&mut Sprite, &UnitId)>, ResMut<Selected>, Res<ButtonInput<MouseButton>>)
 where
     E: Debug + Clone + Reflect,
 {
-    move |ev, mut query, mut selected| {
+    move |ev, mut query, mut selected, buttons| {
+        if !buttons.just_pressed(MouseButton::Left) {return;}
         let Ok((_sprite, uuid)) = query.get_mut(ev.target()) else {
             return;
         };
@@ -43,8 +44,9 @@ where
 
 pub fn menu_action<E: Debug + Clone + Reflect>(
     menu_action: MenuAction,
-) -> impl Fn(Trigger<E>, Res<AssetServer>, ResMut<CurrentMouseAsset>) {
-    move |_ev, asset_server, mut current_mouse_asset| {
+) -> impl Fn(Trigger<E>, Res<AssetServer>, ResMut<CurrentMouseAsset>, Res<ButtonInput<MouseButton>>) {
+    move |_ev, asset_server, mut current_mouse_asset, buttons| {
+        if !buttons.just_released(MouseButton::Left) {return;}
         current_mouse_asset.asset = match menu_action {
             MenuAction::House => Some(asset_server.load("caveman_age/buildings/house_caveman.png")),
         };
