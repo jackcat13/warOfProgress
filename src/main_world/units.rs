@@ -20,7 +20,7 @@ pub fn highlight_selected_units(
 }
 
 pub fn check_movement_on_right_click(
-    movables: Query<(&UnitId, &mut Moving), With<Pickable>>,
+    movables: Query<(&UnitId, &mut Moving, &BuildTarget), With<Pickable>>,
     selected: Res<Selected>,
     window: Single<&Window>,
     camera_single: Single<(&Camera, &GlobalTransform), With<MainCamera>>,
@@ -31,7 +31,10 @@ pub fn check_movement_on_right_click(
         return;
     }
     let (camera, camera_transform) = (camera_single.0, camera_single.1);
-    for (unit_id, mut moving) in movables {
+    for (unit_id, mut moving, build_target) in movables {
+        if build_target.id.is_some() {
+            continue;
+        }
         if !selected.contains(unit_id) {
             continue;
         }
@@ -42,7 +45,7 @@ pub fn check_movement_on_right_click(
             continue;
         };
         new_positions
-            .insert_if_not_present(unit_id, world_position);
+            .insert_or_update(unit_id, world_position);
         *moving = Moving(true);
     }
 }
