@@ -1,8 +1,17 @@
 use bevy::prelude::*;
 
-use crate::{camera::MainCamera, main_world::builds::resolve_building_from_asset, mouse::{get_mouse_position, is_mouse_in_hitbox}};
+use crate::{
+    camera::MainCamera,
+    main_world::builds::resolve_building_from_asset,
+    mouse::{get_mouse_position, is_mouse_in_hitbox},
+};
 
-use super::world_components::{Achievement, BuildTarget, Moving, NewPositions, SelectChild, Selected, UnitId, Villager};
+use super::{
+    hitbox::is_entity_in_hitbox,
+    world_components::{
+        Achievement, BuildTarget, Hitboxes, Moving, NewPositions, SelectChild, Selected, UnitId, Villager
+    },
+};
 
 const SPEED: f32 = 100.0;
 
@@ -44,8 +53,7 @@ pub fn check_movement_on_right_click(
         else {
             continue;
         };
-        new_positions
-            .insert_or_update(unit_id, world_position);
+        new_positions.insert_or_update(unit_id, world_position);
         *moving = Moving(true);
     }
 }
@@ -67,10 +75,14 @@ pub fn check_build_target_on_right_click(
         return;
     };
     for (unit_id, mut build_target) in villagers {
-        if !selected.contains(unit_id) { continue; }
+        if !selected.contains(unit_id) {
+            continue;
+        }
         for (build_id, build_transform, build_sprite) in builds {
             let build_xy = build_transform.translation.xy();
-            let build_size = build_sprite.custom_size.expect("BUG - Build sprite must have custom_size");
+            let build_size = build_sprite
+                .custom_size
+                .expect("BUG - Build sprite must have custom_size");
             if !is_mouse_in_hitbox(mouse_position, build_xy, build_size) {
                 build_target.id = None;
                 continue;
@@ -93,9 +105,18 @@ pub fn process_building_builds(
     asset_server: Res<AssetServer>,
 ) {
     for (mut build_target, moving) in villagers {
-        if moving.0 {continue;}
-        let Some(build_target_id) = &build_target.id else { continue; };
-        let Some((_, mut achievement, mut sprite)) = builds.iter_mut().find(|(build_id, _, _)| *build_id == build_target_id) else {continue;};
+        if moving.0 {
+            continue;
+        }
+        let Some(build_target_id) = &build_target.id else {
+            continue;
+        };
+        let Some((_, mut achievement, mut sprite)) = builds
+            .iter_mut()
+            .find(|(build_id, _, _)| *build_id == build_target_id)
+        else {
+            continue;
+        };
         achievement.progress += 10. * time.delta_secs();
         println!("Progress {:?}", achievement.progress);
         if achievement.progress >= 100. {
@@ -106,13 +127,23 @@ pub fn process_building_builds(
     }
 }
 
+pub fn process_hitboxes(
+    movables: Query<(&UnitId, &Transform, &Sprite)>,
+    mut hitboxes: ResMut<Hitboxes>,
+) {
+    for (unit_id, transform, sprite) in movables {
+        hitboxes.values.insert(unit_id.clone(),(transform.translation.xy(), sprite.custom_size.expect("BUG - Sprite must have a custom size")));
+    }
+}
+
 pub fn move_units(
-    movables: Query<(&UnitId, &mut Moving, &mut Transform), With<Pickable>>,
+    movables: Query<(&UnitId, &mut Moving, &mut Transform, &Sprite), With<Pickable>>,
     new_positions: ResMut<NewPositions>,
     time: Res<Time>,
+    hitboxes: Res<Hitboxes>,
 ) {
     let delta = time.delta_secs();
-    for (unit_id, mut moving, mut transform) in movables {
+    for (unit_id, mut moving, mut transform, sprite) in movables {
         let Some(target_position) = new_positions.get(unit_id) else {
             continue;
         };
@@ -145,6 +176,14 @@ pub fn move_units(
                 current_position.y = target_position.y;
             }
         }
+        let mut is_hit = false;
+        for (other_id, (other_position, other_size)) in &hitboxes.values {
+            if unit_id == other_id {continue;}
+            if is_entity_in_hitbox(current_position, *other_position, *other_size) {
+                is_hit = true;
+            }
+        }
+        if is_hit {continue;}
         transform.translation.x = current_position.x;
         transform.translation.y = current_position.y;
     }

@@ -71,6 +71,11 @@ pub struct PlayerResources {
     pub gold: i8,
 }
 
+#[derive(Resource, Default)]
+pub struct Hitboxes {
+    pub values: HashMap<UnitId, (Vec2, Vec2)>,
+}
+
 impl Default for PlayerResources {
     fn default() -> Self {
         PlayerResources {

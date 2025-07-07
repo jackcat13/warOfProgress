@@ -1,4 +1,5 @@
 pub mod builds;
+pub mod hitbox;
 pub mod hud;
 pub mod main_world;
 pub mod observers;
